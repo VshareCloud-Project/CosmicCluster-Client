@@ -1,0 +1,29 @@
+{
+    "debug": true,
+    "log_level": "INFO",
+    "log_file": ".log/client.log",
+    "log_error_file": ".log/client-error.log",
+    "log_file_size": 10485760,
+    "log_file_backup_count": 5,
+    "log_file_encoding": "utf-8",
+    "log_error_level": "ERROR",
+    "server_endpoint": "http://127.0.0.1:8000",
+    "server_public_key": "config/server_public_key.pem",
+    "client_id":"",
+    "rsa_cipher": "openssl",
+    "rsa_private_key": "config/rsa_private_key.pem",
+    "rsa_public_key": "config/rsa_public_key.pem",
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6379,
+        "db": 0,
+        "password": ""
+    },
+    "queue_prefix": "client.queue.applications",
+    "db_prefix": "db.client",
+    "timezone": "Asia/Shanghai",
+    "installed_apps": [
+        "yeaosound.example",
+        "yeaosound.raid"
+    ]
+}

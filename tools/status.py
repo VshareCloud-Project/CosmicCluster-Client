@@ -2,6 +2,8 @@ import os
 import sys
 import re
 import subprocess
+import psutil
+import time
 
 def get_cpu_info():
     """
@@ -27,15 +29,36 @@ def get_cpu_cores_num():
 if __name__ == "__main__":
     print(get_cpu_cores_num())
 
-def get_cpu_usage():
-    """
-    Get CPU usage
-    """
-    cpu_usage = os.popen("top -b -n 2 -d 0.01 | grep Cpu | tail -n 1").read().split(",")[0].split(":")[1].strip()
-    return cpu_usage
+INTERVAL = 1
 
-if __name__ == "__main__":
-    print(get_cpu_usage())
+
+def get_cpu():
+    return psutil.cpu_percent(interval=INTERVAL)
+def get_uptime():
+    return int(time.time() - psutil.boot_time())
+
+def get_memory():
+    Mem = psutil.virtual_memory()
+    return Mem.total / 1024.0, Mem.used / 1024.0
+
+def get_swap():
+    Mem = psutil.swap_memory()
+    return Mem.total/1024.0, Mem.used/1024.0
+
+def get_hdd():
+    valid_fs = [ "ext4", "ext3", "ext2", "reiserfs", "jfs", "btrfs", "fuseblk", "zfs", "simfs", "ntfs", "fat32", "exfat", "xfs" ]
+    disks = dict()
+    size = 0
+    used = 0
+    for disk in psutil.disk_partitions():
+        if not disk.device in disks and disk.fstype.lower() in valid_fs:
+            disks[disk.device] = disk.mountpoint
+    for disk in disks.values():
+        usage = psutil.disk_usage(disk)
+        size += usage.total
+        used += usage.used
+    return size/1024.0/1024.0, used/1024.0/1024.0
+
 
 def get_mem_info():
     """

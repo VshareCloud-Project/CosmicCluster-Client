@@ -1,6 +1,6 @@
 import os
 import sys
-from process import mainprocess
+from threads import statusUploadProcess
 import configloader
 import logging
 from logging import handlers
@@ -25,7 +25,7 @@ def main():
         file_error_handler.setLevel(getattr(logging,c.getkey("log_error_level")))
         logging.getLogger('').addHandler(file_error_handler)
     logging.info("Starting process")
-    p = mainprocess.mainprocess()
+    p = statusUploadProcess.statusUploadProcess()
     p.start()
     while(p.is_alive()):
         try:

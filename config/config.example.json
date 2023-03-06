@@ -22,8 +22,6 @@
     "queue_prefix": "client.queue.applications",
     "db_prefix": "db.client",
     "timezone": "Asia/Shanghai",
-    "installed_apps": [
-        "yeaosound.example",
-        "yeaosound.raid"
-    ]
+    "client_token":"1145141919810",
+    "bind_port": 8001
 }

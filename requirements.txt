@@ -6,3 +6,4 @@ pymysql
 rsa
 pyOpenSSL
 pycryptodome
+psutil

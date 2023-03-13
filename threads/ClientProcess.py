@@ -2,6 +2,7 @@ from threading import Thread, Event
 import logging
 import requests
 from tools import request , status
+from database import session_helper
 
 class ClientProcess(Thread):
     def __init__(self):
@@ -9,6 +10,7 @@ class ClientProcess(Thread):
         self.event = Event()
         self.has_stopped = False
         self.req = request.request_handler()
+        self.session = session_helper.Session("tasks")
 
 
     def run(self):

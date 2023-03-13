@@ -6,6 +6,7 @@ from database import mysql as db_mysql
 import time
 import base64
 import datetime
+from database import session_helper
 
 router = APIRouter(prefix="/v0",
                    responses={
@@ -32,3 +33,10 @@ router = APIRouter(prefix="/v0",
 async def post_ping(request: Request):
     return JSONResponse({"ret": 0, "msg": "pong"})
 
+@router.post("/status")
+async def post_status(request: Request):
+    data = request.state.origin_data
+    request_id = data["uuid"]
+    #TODO: Check the response is ready
+
+    return JSONResponse({"ret": 0, "msg": "pong"})

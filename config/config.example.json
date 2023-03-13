@@ -23,5 +23,6 @@
     "db_prefix": "db.client",
     "timezone": "Asia/Shanghai",
     "client_token":"1145141919810",
-    "bind_port": 8001
+    "bind_port": 8001,
+    "bearer_token": "1145141919810"
 }

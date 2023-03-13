@@ -3,7 +3,7 @@ import logging
 import requests
 from tools import request , status
 
-class statusUploadProcess(Thread):
+class ClientProcess(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.event = Event()
@@ -16,7 +16,8 @@ class statusUploadProcess(Thread):
             try:
                 if self.has_stopped:
                     break
-                data = {
+                data = {}
+                data["status"] = {
                     "cpu_num": status.get_cpu_cores_num(),
                     "cpu_persent":status.get_cpu(),
                     "uptime":status.get_uptime(),
@@ -26,7 +27,11 @@ class statusUploadProcess(Thread):
                     "hdd_all_used":status.get_hdd()[1],
                     "disk_info":status.get_disk_info()
                 }
-                res = self.req.post_request("/v0/status",data)
+                data["tasks"] = {
+                    #TODO: "taskid":Task Content
+                }
+
+                res = self.req.post_request("/v0/gettask",data)
                 logging.info("Update System status Successful.")
                 if res["ret"] != 0:
                     logging.error(res["msg"])

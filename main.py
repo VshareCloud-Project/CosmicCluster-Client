@@ -1,6 +1,6 @@
 import os
 import sys
-from threads import statusUploadProcess
+from threads import ClientProcess
 import configloader
 import logging
 from logging import handlers
@@ -25,18 +25,19 @@ def main():
         file_error_handler.setLevel(getattr(logging,c.getkey("log_error_level")))
         logging.getLogger('').addHandler(file_error_handler)
     logging.info("Starting process")
-    p = statusUploadProcess.statusUploadProcess()
+    p = ClientProcess.ClientProcess()
     p.start()
     while(p.is_alive()):
         try:
-            p.join(1)
+            p.join(10)
         except (KeyboardInterrupt, SystemExit, SystemError):
             p.stop()
             logging.info("Stopping process")
             break
         except:
+            import traceback
             logging.error("Error in main thread")
-            logging.error(sys.exc_info()[1])
+            logging.error(traceback.format_exc())
             break
 
 if __name__ == "__main__":

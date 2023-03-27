@@ -32,9 +32,11 @@ class ApplicationProcess(threading.Thread):
             request_bearer_token = request_bearer_token.replace("Bearer ","")
             if request_bearer_token != self.bearer_token:
                 return JSONResponse(status_code=401,content={"error":"Invalid Token"})
+            origin_data = await request.body()
+            request.state.origin_data = json.loads(origin_data)
             response = await call_next(request)
-            
             return response
+        
         self.fastapi.include_router(v0_router.router)
     def run(self):
         uvicorn.run(self.fastapi,host=self.bind,port=self.bind_port)

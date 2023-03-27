@@ -2,7 +2,7 @@ from threading import Thread, Event
 import logging
 import requests
 from tools import request , status
-from database import session_helper
+from database import session_helper,redis_queue
 
 class ClientProcess(Thread):
     def __init__(self):
@@ -10,7 +10,9 @@ class ClientProcess(Thread):
         self.event = Event()
         self.has_stopped = False
         self.req = request.request_handler()
-        self.session = session_helper.Session("tasks")
+        self.queue = redis_queue.RedisQueue("task")
+        self.session = session_helper.Session("task")
+        self.done_session = session_helper.Session("done_task")
 
 
     def run(self):
@@ -29,11 +31,33 @@ class ClientProcess(Thread):
                     "hdd_all_used":status.get_hdd()[1],
                     "disk_info":status.get_disk_info()
                 }
+                data["check"] = []
+                check_list = self.session.find("check")
+                for check in check_list:
+                    data["check"].append(self.session.get("check"+check))
                 data["tasks"] = {
-                    #TODO: "taskid":Task Content
+                    
                 }
-
+                while not self.queue.empty():
+                    task = self.queue.pop()
+                    data["tasks"][task["taskid"]] = task
+                    self.session.add("task"+task["taskid"],task)
                 res = self.req.post_request("/v0/gettask",data)
+                for i in check_list:
+                    if i not in data["check"]:
+                        # The mission is missing, should be add it to the queue.
+                        self.queue.push(self.session.get("taskid"+i))
+                        self.session.remove("taskid"+i)
+                    else:
+                        # check the status of the mission
+                        if data["check"][i]["status"] == "done":
+                            # The mission is done, should be remove it from the queue.
+                            self.session.remove("taskid"+i)
+                            self.done_session.add("taskid"+i,data["taskid"][i],86400)
+                        else:
+                            # The mission is not done, should be update the information.
+                            self.session.add("taskid"+i,data["taskid"][i])
+                            
                 logging.info("Update System status Successful.")
                 if res["ret"] != 0:
                     logging.error(res["msg"])

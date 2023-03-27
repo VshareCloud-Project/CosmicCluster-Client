@@ -10,10 +10,11 @@ if __name__ == "__main__":
                 inspect.currentframe())))
     sys.path.insert(0, os.path.join(file_path, '../../'))
 
-from database.redis import redis_cli
+from database import redis as redis_cli
 import configloader
 import json
 import tools
+from tools.calculate import generate_uuid
 
 class RedisQueue():
     def __init__(self,namespaced):
@@ -38,7 +39,7 @@ class RedisQueue():
             self.r.delete(self.redis_queue_key_prefix+"."+key)
 
     def push(self,value):
-        key = tools.genuuid()
+        key = generate_uuid()
         
         self.r.lpush(self.redis_queue_key_main,key)
         s = str(json.dumps(value))

@@ -46,16 +46,13 @@ async def post_status(request: Request):
 async def post_addtask(request: Request):
     data = request.state.origin_data
     application = data["application"]
-    app_function = data["app_function"]
-    appdata = data["appdata"]
 
     task = {
         "application": application,
-        "app_function": app_function,
-        "appdata": appdata,
         "method":"addtask"
     }
-    task["taskid"] = calculate.generate_uuid()
+    task["taskid"] = calculate.genuuid()
+    task["request_id"] = calculate.genuuid()
     task["status"] = "waiting"
     task["time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     redis_queue.RedisQueue("task").push(task)
@@ -65,10 +62,9 @@ async def post_addtask(request: Request):
 async def post_updatetask(request: Request):
     data = request.state.origin_data
     taskid = data["taskid"]
-    application = data["application"]
-    app_function = data["app_function"]
-    appdata = data["appdata"]
-    task_status = data["status"]
+    status = data["status"]
+    step_status = data["step_status"]
+    proof_data = data["proof"]
     task = session_helper.Session("done_task").get("task"+taskid)
     if task is not None:
         return JSONResponse({"ret": 1, "msg": "Task is done"})
@@ -81,7 +77,7 @@ async def post_updatetask(request: Request):
         "status":task_status,
         "origin_task":session_helper.Session("task").get("task"+taskid)
     }
-    task["taskid"] = calculate.generate_uuid()
+    task["taskid"] = calculate.genuuid()
     task["time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     redis_queue.RedisQueue("task").push(task)
     return JSONResponse({"ret": 0, "msg": "OK","taskid":task["taskid"]})

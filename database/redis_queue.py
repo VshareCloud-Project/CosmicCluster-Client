@@ -14,7 +14,7 @@ from database import redis as redis_cli
 import configloader
 import json
 import tools
-from tools.calculate import generate_uuid
+from tools.calculate import genuuid
 
 class RedisQueue():
     def __init__(self,namespaced):
@@ -39,7 +39,7 @@ class RedisQueue():
             self.r.delete(self.redis_queue_key_prefix+"."+key)
 
     def push(self,value):
-        key = generate_uuid()
+        key = genuuid()
         
         self.r.lpush(self.redis_queue_key_main,key)
         s = str(json.dumps(value))

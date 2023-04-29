@@ -1,8 +1,14 @@
 from threading import Thread, Event
 import logging
 import requests
-from tools import request , status
+from tools import request , status , calculate
 from database import session_helper,redis_queue
+import configloader
+
+app_messages_verify = session_helper.Session("app_messages_verify") #APP验证的消息
+app_messages_to_server = session_helper.Session("app_messages_to_server") #APP发给服务端的消息
+server_messages_verify = session_helper.Session("server_messages_verify") #服务端验证的消息
+server_messages_to_app = session_helper.Session("server_messages_to_app") #服务端发给APP的消息
 
 class ClientProcess(Thread):
     def __init__(self):
@@ -13,6 +19,8 @@ class ClientProcess(Thread):
         self.queue = redis_queue.RedisQueue("task")
         self.session = session_helper.Session("task")
         self.done_session = session_helper.Session("done_task")
+        self.c = configloader.config()
+        self.client_id = self.c.getkey("client_id")
 
 
     def run(self):
@@ -31,36 +39,24 @@ class ClientProcess(Thread):
                     "hdd_all_used":status.get_hdd()[1],
                     "disk_info":status.get_disk_info()
                 }
-                data["check"] = []
-                check_list = self.session.find("check")
-                for check in check_list:
-                    data["check"].append(self.session.get("check"+check))
-                data["tasks"] = {
-                    
-                }
-                while not self.queue.empty():
-                    task = self.queue.pop()
-                    data["tasks"][task["taskid"]] = task
-                    self.session.add("task"+task["taskid"],task)
-                res = self.req.post_request("/v0/gettask",data)
-                for i in check_list:
-                    if i not in data["check"]:
-                        # The mission is missing, should be add it to the queue.
-                        self.queue.push(self.session.get("taskid"+i))
-                        self.session.remove("taskid"+i)
-                    else:
-                        # check the status of the mission
-                        if data["check"][i]["status"] == "done":
-                            # The mission is done, should be remove it from the queue.
-                            self.session.remove("taskid"+i)
-                            self.done_session.add("taskid"+i,data["taskid"][i],86400)
-                        else:
-                            # The mission is not done, should be update the information.
-                            self.session.add("taskid"+i,data["taskid"][i])
-                            
-                logging.info("Update System status Successful.")
-                if res["ret"] != 0:
-                    logging.error(res["msg"])
+                data["west"] = {}
+                data["east"] = {}
+                res = self.req.post_request("/gettask",data)
+                west_data = res["west"]
+                for i in west_data:
+                    sign = west_data[i]["sign"]
+                    app = west_data[i]["application"]
+                    message = server_messages_verify.get(".".join([app, i]))
+                    if message == None:
+                        continue
+                    if calculate.sha512_verify(
+                        ".".join([i, self.client_id, app, message]), sign):
+                        server_messages_verify.remove(".".join([self.client_id, app, i]))
+                east_data = res["east"]
+                for i in east_data:
+                    destination = east_data[i]["destination"]
+                    message = east_data[i]["message"]
+                    app = east_data[i]["application"]
                 
             except:
                 import traceback

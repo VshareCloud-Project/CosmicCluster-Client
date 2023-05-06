@@ -122,10 +122,10 @@ async def post_messages(request: Request, backgroundtasks: BackgroundTasks):
     data = request.state.origin_data
     user_uuid = request.state.user_uuid
     messages = {}
-    new_messages = server_messages_verify.find(user_uuid)
+    new_messages = server_messages_to_app.find(user_uuid)
     for new_message in new_messages:
         
-        message = server_messages_verify.get(new_message)
+        message = server_messages_to_app.get(new_message)
         message_id = new_message.split(".")[2]
         app = new_message.split(".")[1]
         destination = new_message.split(".")[0]

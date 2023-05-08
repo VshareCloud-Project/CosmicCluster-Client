@@ -41,7 +41,7 @@ class ClientProcess(Thread):
                 }
                 # Messages send to server
                 data["west"] = []
-                send_message_list = app_messages_to_server.find()
+                send_message_list = app_messages_to_server.find("")
                 for i in send_message_list:
                     message = app_messages_to_server.get(i)
                     app = i.split(".")[1]
@@ -49,49 +49,54 @@ class ClientProcess(Thread):
                     destination = i.split(".")[0]
                     data["west"].append({
                         "message_id":message_id,
-                        "message":message,
+                        "message":message.decode(),
                         "application":app,
                         "destination":destination
                     })
                 # return the sign of the message
-                data["east"] = {}
+                data["east"] = []
                 message_list = server_messages_verify.find(self.client_id)
                 for i in message_list:
                     message = server_messages_verify.get(i)
                     app = i.split(".")[1]
                     message_id = i.split(".")[2]
                     destination = i.split(".")[0]
-                    sign = calculate.sha512(".".join([message_id, self.client_id, app, message]))
-                    data["east"][message_id] = {
+                    sign = calculate.sha512(".".join([message_id, self.client_id, app, message.decode()]))
+                    data["east"].append({
                         "message_id":message_id,
                         "application":app,
                         "sign":sign
-                    }
+                    })
 
-                res = self.req.post_request("/gettask",data)
-                west_data = res["west"]
+                res = self.req.post_request("/v0/gettask",data)
+                res_data = res["data"]
+                west_data = res_data["west"]
                 for i in west_data:
                     sign = west_data[i]["sign"]
                     app = west_data[i]["application"]
-                    message = app_messages_to_server.get(".".join([self.client_id,app, i]))
+                    destination = west_data[i]["destination"]
+                    message = app_messages_to_server.get(".".join([destination,app, i]))
+                    message = message.decode()
                     if message == None:
                         continue
                     if calculate.sha512_verify(
-                        ".".join([i, self.client_id, app, message]), sign):
-                        app_messages_to_server.remove(".".join([self.client_id, app, i]))
-                east_data = res["east"]
+                        ".".join([i, destination, app, message]), sign):
+                        app_messages_to_server.remove(".".join([destination, app, i]))
+                east_data = res_data["east"]
                 for i in east_data:
                     destination = east_data[i]["destination"]
                     message = east_data[i]["message"]
                     app = east_data[i]["application"]
                     message_id = i
-                    server_messages_verify.add(".".join([destination, app, message_id]), message)
-                    server_messages_to_app.add(".".join([destination, app, message_id]), message)
+                    if server_messages_verify.get(".".join([destination, app, message_id])) == None:
+                        server_messages_verify.add(".".join([destination, app, message_id]), message)
+                        server_messages_to_app.add(".".join([destination, app, message_id]), message)
+                logging.info("Update Status done")
                 
             except:
                 import traceback
                 logging.error(traceback.format_exc())
-            self.event.wait(120)
+            self.event.wait(30)
             
 
     def stop(self):

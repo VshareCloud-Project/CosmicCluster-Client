@@ -23,5 +23,8 @@ class Session():
         return self.r.get(redis_key)
         
     def find(self,attr):
-        res = [str(i,"utf-8").replace(self.redis_session_prefix+".","") for i in self.r.keys(self.redis_session_prefix+"."+attr+".*")]
+        if attr is not None and attr != "":
+            res = [str(i,"utf-8").replace(self.redis_session_prefix+".","") for i in self.r.keys(self.redis_session_prefix+"."+attr+".*")]
+        else:
+            res = [str(i,"utf-8").replace(self.redis_session_prefix+".","") for i in self.r.keys(self.redis_session_prefix+".*")]
         return res

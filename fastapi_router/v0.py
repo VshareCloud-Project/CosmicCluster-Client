@@ -34,6 +34,10 @@ app_messages_to_server = session_helper.Session("app_messages_to_server") #服�
 server_messages_verify = session_helper.Session("server_messages_verify") #客户端发出的消息，服务端验证使用
 server_messages_to_app = session_helper.Session("server_messages_to_app")
 
+import configloader
+c = configloader.config()
+client_id = c.getkey("client_id")
+
 @router.post("/ping")
 async def post_ping(request: Request):
     return JSONResponse({"ret": 0, "msg": "pong"})
@@ -56,8 +60,9 @@ async def post_addtask(request: Request, backgroundtasks: BackgroundTasks):
     message = data["message"]
     if type(message) == dict or type(message) == list:
         message = calculate.base64_encode(json.dumps(message, indent=0))
-    app_messages_verify.add(".".join([destination, app, message_id]), message)
-    app_messages_to_server.add(".".join([destination, app, message_id]), message)
+    if app_messages_verify.get(".".join([destination, app, message_id])) == None:
+        app_messages_verify.add(".".join([destination, app, message_id]), message)
+        app_messages_to_server.add(".".join([destination, app, message_id]), message)
     return JSONResponse({"ret": 0, "msg": "ok"})
 
 
@@ -73,8 +78,9 @@ async def post_addtasks(request: Request, backgroundtasks: BackgroundTasks):
         message = newmessage["message"]
         if type(message) == dict or type(message) == list:
             message = calculate.base64_encode(json.dumps(message, indent=0))
-        app_messages_verify.add(".".join([destination, app, message_id]), message)
-        app_messages_to_server.add(".".join([destination, app, message_id]), message)
+        if app_messages_verify.get(".".join([destination, app, message_id])) == None:
+            app_messages_verify.add(".".join([destination, app, message_id]), message)
+            app_messages_to_server.add(".".join([destination, app, message_id]), message)
     return JSONResponse({"ret": 0, "msg": "ok"})
 
 
@@ -120,7 +126,7 @@ async def post_multi(request: Request, backgroundtasks: BackgroundTasks):
 async def post_messages(request: Request, backgroundtasks: BackgroundTasks):
     #TODO get messages
     data = request.state.origin_data
-    user_uuid = request.state.user_uuid
+    user_uuid = client_id
     messages = {}
     new_messages = server_messages_to_app.find(user_uuid)
     for new_message in new_messages:
@@ -146,16 +152,16 @@ async def post_updatestatus(request: Request,
     data = request.state.origin_data
     message_id = data["message_id"]
     app = data["application"]
-    destination = request.state.user_uuid
+    destination = client_id
     sign = data["sign"]
-    message = server_messages_verify.get(".".join([destination, app, message_id]))
+    message = server_messages_to_app.get(".".join([destination, app, message_id]))
     if message == None:
         return JSONResponse({"ret": 404, "msg": "Not found"})
     if type(message) == bytes:
         message = message.decode('utf-8')
     if calculate.sha512_verify(
             ".".join([message_id, destination, app, message]), sign):
-        server_messages_verify.remove(".".join([destination, app, message_id]))
+        server_messages_to_app.remove(".".join([destination, app, message_id]))
         return JSONResponse({"ret": 0, "msg": "ok"})
     else:
         return JSONResponse({"ret": 401, "msg": "Sign Invalid"})
@@ -165,18 +171,18 @@ async def post_updatestatus(request: Request,
 async def post_updatemultistatus(request: Request,
                                  backgroundtasks: BackgroundTasks):
     data = request.state.origin_data
-    destination = request.state.user_uuid
+    destination = client_id
     messages = data["messages"]
     for newmessage in messages:
         message_id = newmessage["message_id"]
         sign = newmessage["sign"]
         app = newmessage["application"]
-        message = server_messages_verify.get(".".join([destination, app, message_id]))
+        message = server_messages_to_app.get(".".join([destination, app, message_id]))
         if message == None:
             continue
         if type(message) == bytes:
             message = message.decode('utf-8')
         if calculate.sha512_verify(
                 ".".join([message_id, destination, app, message]), sign):
-            server_messages_verify.remove(".".join([destination, app, message_id]))
+            server_messages_to_app.remove(".".join([destination, app, message_id]))
     return JSONResponse({"ret": 0, "msg": "ok"})

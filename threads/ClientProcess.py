@@ -44,13 +44,13 @@ class ClientProcess(Thread):
                 send_message_list = app_messages_to_server.find("")
                 for i in send_message_list:
                     message = app_messages_to_server.get(i)
-                    app = i.split(".")[1]
+                    source = i.split(".")[1]
                     message_id = i.split(".")[2]
                     destination = i.split(".")[0]
                     data["west"].append({
                         "message_id":message_id,
                         "message":message.decode(),
-                        "application":app,
+                        "source":source,
                         "destination":destination
                     })
                 # return the sign of the message
@@ -58,13 +58,13 @@ class ClientProcess(Thread):
                 message_list = server_messages_verify.find(self.client_id)
                 for i in message_list:
                     message = server_messages_verify.get(i)
-                    app = i.split(".")[1]
+                    source = i.split(".")[1]
                     message_id = i.split(".")[2]
                     destination = i.split(".")[0]
-                    sign = calculate.sha512(".".join([message_id, self.client_id, app, message.decode()]))
+                    sign = calculate.sha512(".".join([message_id, self.client_id, source, message.decode()]))
                     data["east"].append({
                         "message_id":message_id,
-                        "application":app,
+                        "source":source,
                         "sign":sign
                     })
 
@@ -73,24 +73,24 @@ class ClientProcess(Thread):
                 west_data = res_data["west"]
                 for i in west_data:
                     sign = west_data[i]["sign"]
-                    app = west_data[i]["application"]
+                    source = west_data[i]["source"]
                     destination = west_data[i]["destination"]
-                    message = app_messages_to_server.get(".".join([destination,app, i]))
+                    message = app_messages_to_server.get(".".join([destination,source, i]))
                     message = message.decode()
                     if message == None:
                         continue
                     if calculate.sha512_verify(
-                        ".".join([i, destination, app, message]), sign):
-                        app_messages_to_server.remove(".".join([destination, app, i]))
+                        ".".join([i, destination, source, message]), sign):
+                        app_messages_to_server.remove(".".join([destination, source, i]))
                 east_data = res_data["east"]
                 for i in east_data:
                     destination = east_data[i]["destination"]
                     message = east_data[i]["message"]
-                    app = east_data[i]["application"]
+                    source = east_data[i]["source"]
                     message_id = i
-                    if server_messages_verify.get(".".join([destination, app, message_id])) == None:
-                        server_messages_verify.add(".".join([destination, app, message_id]), message)
-                        server_messages_to_app.add(".".join([destination, app, message_id]), message)
+                    if server_messages_verify.get(".".join([destination, source, message_id])) == None:
+                        server_messages_verify.add(".".join([destination, source, message_id]), message)
+                        server_messages_to_app.add(".".join([destination, source, message_id]), message)
                 logging.info("Update Status done")
                 
             except:
